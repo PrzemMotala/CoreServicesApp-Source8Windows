@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DialogPane?>
+
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.control.Label?>
+<DialogPane xmlns:fx="http://javafx.com/fxml" fx:controller="com.przemekm.coreservicesapp.controllers.GenerateReports">
+    <content>
+        <GridPane hgap="10" vgap="10"><!-- Horizontal gap and vertical gap -->
+            <Label text="Report type" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+            <ComboBox fx:id="reportTypeBox" prefWidth="200" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+            <Label text="clientId" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+            <ComboBox fx:id="clientIdBox" disable="true" prefWidth="200" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+            <CheckBox fx:id="clientIdCheckBox" text="Select clientId" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+        </GridPane>
+    </content>
+</DialogPane>

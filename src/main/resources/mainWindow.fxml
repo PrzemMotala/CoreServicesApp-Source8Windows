@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+
+<?import javafx.scene.text.TextFlow?>
+<BorderPane fx:id="mainPane" fx:controller="com.przemekm.coreservicesapp.controllers.MainWindow"
+            xmlns:fx="http://javafx.com/fxml" stylesheets="@styles.css">
+    <top>
+        <ToolBar>
+            <Button onAction="#loadOrdersDialog" text="Load orders"></Button>
+            <Button fx:id="generateButton" onAction="#generateReportsDialog" text="Generate reports" disable="true"></Button>
+        </ToolBar>
+    </top>
+    <left>
+        <VBox>
+            <ToolBar style="-fx-border-color: #A8A8A8;
+                   -fx-border-width: 0 1 1 0;
+                   -fx-border-style: solid;
+                   -fx-alignment: CENTER">
+                <Label text="LOADED ORDERS">
+                    <font>
+                        <Font name="Arial bold" size="12"/>
+                    </font>
+                </Label>
+            </ToolBar>
+            <TableView fx:id="ordersTable" disable="true" VBox.vgrow="ALWAYS"/>
+            <ToolBar style="-fx-border-color: #A8A8A8;
+                   -fx-border-width: 1 1 1 0;
+                   -fx-border-style: solid;
+                   -fx-alignment: CENTER">
+                <Label text="GENERATED REPORTS">
+                    <font>
+                        <Font name="Arial bold" size="12"/>
+                    </font>
+                </Label>
+            </ToolBar>
+            <ListView fx:id="reportsList" disable="true" VBox.vgrow="ALWAYS"/>
+        </VBox>
+    </left>
+    <center>
+        <Label fx:id="tempLabel" text="Please load orders from XML or CSV files" wrapText="true" textAlignment="CENTER">
+            <font>
+                <Font name="Arial bold" size="40"/>
+            </font>
+        </Label>
+    </center>
+    <bottom>
+        <ScrollPane fitToHeight="true" fitToWidth="true">
+            <TextFlow fx:id="consoleArea" prefHeight="100" style="-fx-border-color: #A8A8A8;
+                       -fx-border-width: 1 0 0 0;
+                       -fx-border-style: solid;
+                       -fx-background-color: white"/>
+        </ScrollPane>
+    </bottom>
+</BorderPane>
