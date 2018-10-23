@@ -1,0 +1,30 @@
+﻿<requests>
+	<request>
+		<clientId>2</clientId>
+		<requestId>6</requestId>
+		<name>Orange</name>
+		<quantity>10</quantity>
+		<price>21.00</price>
+	</request>
+	<request>
+		<clientId>3</clientId>
+		<requestId>22</requestId>
+		<name>Apple</name>
+		<quantity>21</quantity>
+		<price>73.22</price>
+	</request>
+	<request>
+		<clientId>9</clientId>
+		<requestId>12</requestId>
+		<name>Apple</name>
+		<quantity>7</quantity>
+		<price>22.01</price>
+	</request>
+	<request>
+		<clientId>11</clientId>
+		<requestId>10</requestId>
+		<name>Banana</name>
+		<quantity>33</quantity>
+		<price>11.00</price>
+	</request>
+</requests>
