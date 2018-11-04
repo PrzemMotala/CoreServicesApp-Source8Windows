@@ -1,10 +1,11 @@
 package com.przemekm.coreservicesapp.controllers;
 
 import com.przemekm.coreservicesapp.database.H2Database;
-import com.przemekm.coreservicesapp.datamodel.Order;
-import com.przemekm.coreservicesapp.datamodel.Report;
-import com.przemekm.coreservicesapp.datamodel.ReportParams;
+import com.przemekm.coreservicesapp.datamodel.*;
 
+import com.przemekm.coreservicesapp.utilities.CSVFileLoader;
+import com.przemekm.coreservicesapp.utilities.FileLoader;
+import com.przemekm.coreservicesapp.utilities.XMLFileLoader;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -20,6 +21,7 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Priority;
@@ -31,13 +33,8 @@ import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 import javafx.stage.FileChooser;
 import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
-import javax.xml.parsers.DocumentBuilder;
+
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -76,6 +73,13 @@ public class MainWindow {
     @FXML
     private Label tempLabel;
 
+    private static Text textToDisplay = new Text("");
+
+    public static void setTextToDisplay(String text) {
+        textToDisplay.setText("");
+        textToDisplay.setText(text);
+    }
+
     private VBox containerBox = new VBox();
     private TextArea reportDisplayArea = new TextArea();
     private VBox saveButtonBox = new VBox();
@@ -113,12 +117,6 @@ public class MainWindow {
      * @see Insets
      */
     private static final int SAVE_BUTTON_PADDING = 10;
-
-    /**
-     * This parameter specifies the list of tags included in an order.
-     */
-    private static final List<String> TAGS_LIST = new ArrayList<>(
-            Arrays.asList("clientId", "requestId", "name", "quantity", "price"));
 
     /**
      * This method is called when {@link MainWindow} is being created.
@@ -245,6 +243,12 @@ public class MainWindow {
          */
         saveButton.setOnAction(event ->
                 saveReport(reportsList.getSelectionModel().getSelectedItem()));
+
+        textToDisplay.textProperty().addListener((observable, oldValue, newValue) -> {
+            Text text = new Text(textToDisplay.getText());
+            text.setFont(new Font("Arial", CONSOLE_TEXT_SIZE));
+            consoleArea.getChildren().add(text);
+        });
     }
 
     /**
@@ -252,19 +256,17 @@ public class MainWindow {
      * used for loading files with orders.
      * <p>
      * The allowed file types are CSV and XML.
-     * Depending on which one is chosen, two methods
-     * are being called: {@link #loadCSV(File)} or {@link #loadXML(File)}.
      * User can choose multiple files at once.
      * After loading the files, the {@link #loadDataFromDatabase()} method is called.
      *
      * @see #loadDataFromDatabase()
-     * @see #loadCSV(File)
-     * @see #loadXML(File)
      */
     @FXML
     public void loadOrdersDialog() {
         boolean isFileGood = false; //Used as a boolean to disabled/enable parts of the layout.
         FileChooser chooser = new FileChooser();
+        FileLoader fileLoader;
+
         chooser.getExtensionFilters().add(
                 new FileChooser.
                         ExtensionFilter("Allowed types", "*.csv", "*.xml"));
@@ -284,16 +286,6 @@ public class MainWindow {
                 Iterates over all of the selected files.
              */
             for (File file : files) {
-                /*
-                    If the isFileGood boolean is set as "false",
-                    elements of layout are set as disabled.
-                 */
-                if (!isFileGood) {
-                    ordersTable.setDisable(true);
-                    reportsList.setDisable(true);
-                    generateButton.setDisable(true);
-                }
-
                 if (file.getName()
                         .substring(file
                                 .getName()
@@ -303,9 +295,8 @@ public class MainWindow {
                         loadCSV(File) returns boolean value, which indicates if
                         the file with proper file type has or doesn't have data of orders.
                      */
-                    if (loadCSV(file)) {
-                        isFileGood = true;
-                    }
+                    fileLoader = new CSVFileLoader();
+                    isFileGood = fileLoader.load(file);
                 } else if (file.getName()
                         .substring(file
                                 .getName()
@@ -315,19 +306,15 @@ public class MainWindow {
                         loadXML(File) returns boolean value, which indicates if
                         the file with proper file type has or doesn't have data of orders.
                      */
-                    if (loadXML(file)) {
-                        isFileGood = true;
-                    }
+                    fileLoader = new XMLFileLoader();
+                    isFileGood = fileLoader.load(file);
                 } else {
                     /*
                         Sends a text message to the console.
                      */
-                    Text text = new Text("Wrong file type of file "
+                    setTextToDisplay("Wrong file type of file "
                             + file.getName()
                             + System.lineSeparator());
-                    text.setFill(Color.RED);
-                    text.setFont(new Font("Arial", CONSOLE_TEXT_SIZE));
-                    consoleArea.getChildren().add(text);
                 }
 
                 /*
@@ -338,6 +325,10 @@ public class MainWindow {
                     ordersTable.setDisable(false);
                     reportsList.setDisable(false);
                     generateButton.setDisable(false);
+                } else {
+                    ordersTable.setDisable(true);
+                    reportsList.setDisable(true);
+                    generateButton.setDisable(true);
                 }
             }
             loadDataFromDatabase();
@@ -503,182 +494,5 @@ public class MainWindow {
      */
     private void loadDataFromDatabase() {
         loadedOrders.addAll(H2Database.getInstance().getAllData());
-    }
-
-    /**
-     * This method loads data from the CSV file.
-     * <p>
-     * Each line of proper data is saved in a H2 database
-     * with use of {@link H2Database#saveData(Order)} method.
-     * If the file has no proper data or one of the lines is in a wrong format,
-     * an {@link IllegalArgumentException} is caught and a message is displayed.
-     * <p>
-     * It is assumed that the format of CSV file is as follows:
-     * <pre>
-     * {@code
-     *      Client_Id,Request_Id,Name,Quantity,Price
-     *      String,long,String,int,BigDecimal
-     * }
-     * </pre>
-     *
-     * @param file the {@link File} to read from.
-     * @return {@code true} if the file has at least one line of data in proper format.
-     * @see H2Database#saveData(Order)
-     * @see BufferedReader
-     * @see InputStreamReader
-     * @see FileInputStream
-     */
-    private boolean loadCSV(final File file) {
-        boolean isFileNotEmpty = false;
-        try (BufferedReader reader
-                     = new BufferedReader(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
-            String line;
-
-            //Skip the first line (CSV headers).
-            line = reader.readLine();
-
-            while ((line = reader.readLine()) != null) {
-                if (line.length() > 0) {
-                    String[] data = line.split(",");
-
-                    try {
-                        H2Database.getInstance()
-                                .saveData(new Order(data));
-                        isFileNotEmpty = true;
-                    } catch (IllegalArgumentException e) {
-                        Text text = new Text("Line \""
-                                + line
-                                + "\" skipped - wrong format!"
-                                + System.lineSeparator());
-                        text.setFont(new Font("Arial", CONSOLE_TEXT_SIZE));
-                        text.setFill(Color.RED);
-                        consoleArea.getChildren().add(text);
-                    }
-                }
-            }
-
-            if (!isFileNotEmpty) {
-                Text text = new Text("No suitable lines found in CSV file "
-                        + file.getName() + "!"
-                        + System.lineSeparator());
-                text.setFont(new Font("Arial", CONSOLE_TEXT_SIZE));
-                text.setFill(Color.RED);
-                consoleArea.getChildren().add(text);
-                return false;
-            } else {
-                Text text = new Text("CSV file "
-                        + file.getName()
-                        + " loaded successfully!" + System.lineSeparator());
-                text.setFont(new Font("Arial", CONSOLE_TEXT_SIZE));
-                consoleArea.getChildren().add(text);
-                return true;
-            }
-        } catch (IOException e) {
-            System.out.println("Couldn't read the file!");
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-    /**
-     * This method loads data from the XML file.
-     * <p>
-     * Each line of proper data is saved in a H2 database
-     * with use of {@link H2Database#saveData(Order)} method.
-     * If the file has missing tags inside {@code <request>} tag or the loaded data is in a wrong format,
-     * an {@link IllegalArgumentException} is caught and a message is displayed.
-     * <p>
-     * It is assumed that the format of XML file is as follows:
-     * <pre>
-     * {@code
-     *     <requests>
-     *         <request>
-     *             <clientId>String</clientId>
-     *             <requestId>long</requestId>
-     *             <name>String</name>
-     *             <quantity>int</quantity>
-     *             <price>BigDecimal</price>
-     *         </request>
-     *     </requests>
-     * }
-     * </pre>
-     *
-     * @param file the {@link File} to read from.
-     * @return {@code true} if the file has at least one batch of data in proper format.
-     * @see H2Database#saveData(Order)
-     * @see DocumentBuilderFactory
-     * @see Document
-     */
-    private boolean loadXML(final File file) {
-        boolean isFileNotEmpty = false;
-
-        String[] data = new String[TAGS_LIST.size()];
-        DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
-        Document document = null;
-
-        try {
-            DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
-            document = documentBuilder.parse(file);
-        } catch (ParserConfigurationException | SAXException | IOException e) {
-            System.out.println("Couldn't parse the file!");
-            e.printStackTrace();
-        }
-
-        NodeList nodeList = document.getElementsByTagName("request");
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            Node node = nodeList.item(i);
-            if (node.getNodeType() == Node.ELEMENT_NODE) {
-                Element element = (Element) node;
-                StringBuilder dataBuilder = new StringBuilder();
-
-                for (int j = 0; j < TAGS_LIST.size(); j++) {
-                    try {
-                        data[j] = element.getElementsByTagName(TAGS_LIST.get(j))
-                                .item(0)
-                                .getTextContent();
-                    } catch (NullPointerException e) {
-                        /*
-                            Occurs when one of the tags in <request> tag is missing.
-                         */
-                        data[j] = "";
-                    }
-                    if (!(j == (TAGS_LIST.size() - 1))) {
-                        dataBuilder.append(data[j]).append(",");
-                    } else {
-                        dataBuilder.append(data[j]);
-                    }
-                }
-
-                try {
-                    H2Database.getInstance()
-                            .saveData(new Order(data));
-                    isFileNotEmpty = true;
-                } catch (IllegalArgumentException e) {
-                    Text text = new Text("Line \"" + dataBuilder.toString()
-                            + "\" skipped - wrong format!"
-                            + System.lineSeparator());
-                    text.setFont(new Font("Arial", CONSOLE_TEXT_SIZE));
-                    text.setFill(Color.RED);
-                    consoleArea.getChildren().add(text);
-                }
-            }
-        }
-
-        if (!isFileNotEmpty) {
-            Text text = new Text("No suitable lines found in XML file "
-                    + file.getName() + "!"
-                    + System.lineSeparator());
-            text.setFont(new Font("Arial", CONSOLE_TEXT_SIZE));
-            text.setFill(Color.RED);
-            consoleArea.getChildren().add(text);
-            return false;
-        } else {
-            Text text = new Text("XML file "
-                    + file.getName()
-                    + " loaded successfully!" + System.lineSeparator());
-            text.setFont(new Font("Arial", CONSOLE_TEXT_SIZE));
-            consoleArea.getChildren().add(text);
-            return true;
-        }
     }
 }

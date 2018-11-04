@@ -65,12 +65,13 @@ public final class Order {
                  final String name,
                  final int quantity,
                  final BigDecimal price) {
-        String[] data = new String[] {clientId,
-                Long.toString(requestId),
-                name, Integer.toString(quantity),
-                price.toString()};
 
-        if (checkData(data)) {
+        if (checkData(new String[] {clientId,
+                Long.toString(requestId),
+                name,
+                Integer.toString(quantity),
+                price.toString()}
+                )) {
             this.clientId = clientId;
             this.requestId = requestId;
             this.name = name;

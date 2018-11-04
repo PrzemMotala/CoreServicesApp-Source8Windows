@@ -10,7 +10,8 @@ public enum ReportType {
     /**
      * Query to get the total amount of orders.
      */
-    ORDERS_AMOUNT("Total amount of orders", "SELECT COUNT(id) FROM ORDERS"),
+    ORDERS_AMOUNT("Total amount of orders", "SELECT COUNT(DISTINCT requestId) FROM ORDERS"),
+    //ORDERS_AMOUNT("Total amount of orders", "SELECT COUNT(id) FROM ORDERS"),
     /**
      * Query to get the total price of orders.
      */
